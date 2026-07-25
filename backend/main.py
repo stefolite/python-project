@@ -1,4 +1,5 @@
 from fastapi import FastAPI, WebSocket
+from fastapi.websockets import WebSocketDisconnect
 
 
 app = FastAPI()
@@ -12,6 +13,9 @@ def health_check():
 @app.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f'The message is: {data}')
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f'The message is: {data}')
+    except WebSocketDisconnect:
+        print('Client disconnected')
