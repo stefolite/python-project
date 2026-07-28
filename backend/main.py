@@ -1,8 +1,30 @@
-from fastapi import FastAPI, WebSocket
-from fastapi.websockets import WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from uuid import uuid4
 
 
 app = FastAPI()
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        websocket.state.connection_id = str(uuid4())[:8]
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, sender: WebSocket, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(
+                f'{sender.state.connection_id}: {message}'
+            )
+
+
+manager = ConnectionManager()
 
 
 @app.get('/health')
@@ -12,10 +34,11 @@ def health_check():
 
 @app.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
+    await manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
-            await websocket.send_text(f'The message is: {data}')
+            await manager.broadcast(websocket, data)
     except WebSocketDisconnect:
+        manager.disconnect(websocket)
         print('Client disconnected')
