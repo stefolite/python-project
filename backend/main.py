@@ -18,10 +18,13 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
 
     async def broadcast(self, sender: WebSocket, message: str):
+        event = {
+            "type": "message",
+            "sender_id": sender.state.connection_id,
+            "text": message
+        }
         for connection in self.active_connections:
-            await connection.send_text(
-                f'{sender.state.connection_id}: {message}'
-            )
+            await connection.send_json(event)
 
 
 manager = ConnectionManager()
