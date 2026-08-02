@@ -1,6 +1,13 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from uuid import uuid4
-import json
+from pydantic import BaseModel, Field, ValidationError
+from typing import Literal
+from json import JSONDecodeError
+
+
+class IncomingMessage(BaseModel):
+    type: Literal["message"]
+    text: str = Field(min_length=1, max_length=500)
 
 
 app = FastAPI()
@@ -42,7 +49,14 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
-            await manager.broadcast(websocket, data["text"])
+            try:
+                message = IncomingMessage.model_validate(data)
+                await manager.broadcast(websocket, message.text)
+
+            except (ValidationError, JSONDecodeError):
+                await websocket.send_json(
+                    {"type": "error", "detail": "Invalid message"}
+                )
+
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
         print('Client disconnected')
