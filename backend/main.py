@@ -48,8 +48,8 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_json()
             try:
+                data = await websocket.receive_json()
                 message = IncomingMessage.model_validate(data)
                 await manager.broadcast(websocket, message.text)
 
@@ -60,3 +60,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         print('Client disconnected')
+
+    finally:
+        manager.disconnect(websocket)
