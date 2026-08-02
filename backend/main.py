@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from uuid import uuid4
+import json
 
 
 app = FastAPI()
@@ -21,7 +22,7 @@ class ConnectionManager:
         event = {
             "type": "message",
             "sender_id": sender.state.connection_id,
-            "text": message
+            "text": message,
         }
         for connection in self.active_connections:
             await connection.send_json(event)
@@ -40,8 +41,8 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
-            await manager.broadcast(websocket, data)
+            data = await websocket.receive_json()
+            await manager.broadcast(websocket, data["text"])
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         print('Client disconnected')
