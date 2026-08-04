@@ -32,7 +32,10 @@ class ConnectionManager:
             "text": message,
         }
         for connection in list(self.active_connections.values()):
-            await connection.send_json(event)
+            try:
+                await connection.send_json(event)
+            except (WebSocketDisconnect, RuntimeError):
+                self.disconnect(connection)
 
 
 manager = ConnectionManager()
