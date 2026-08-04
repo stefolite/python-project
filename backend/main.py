@@ -15,15 +15,15 @@ app = FastAPI()
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        self.active_connections: dict[str, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        websocket.state.connection_id = str(uuid4())[:8]
-        self.active_connections.append(websocket)
+        websocket.state.connection_id = uuid4().hex[:12]
+        self.active_connections[websocket.state.connection_id] = websocket
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        self.active_connections.pop(websocket.state.connection_id, None)
 
     async def broadcast(self, sender: WebSocket, message: str):
         event = {
@@ -31,7 +31,7 @@ class ConnectionManager:
             "sender_id": sender.state.connection_id,
             "text": message,
         }
-        for connection in self.active_connections:
+        for connection in list(self.active_connections.values()):
             await connection.send_json(event)
 
 
