@@ -3,6 +3,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, ValidationError
 from typing import Literal
 from json import JSONDecodeError
+from contextlib import asynccontextmanager
 
 
 class IncomingMessage(BaseModel):
@@ -10,17 +11,26 @@ class IncomingMessage(BaseModel):
     text: str = Field(min_length=1, max_length=500)
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("App starting...")
+    yield
+    print("App closing...")
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 class ConnectionManager:
     def __init__(self):
         self.active_connections: dict[str, WebSocket] = {}
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket) -> str:
         await websocket.accept()
-        websocket.state.connection_id = uuid4().hex[:12]
+        connection_id = uuid4().hex[:12]
+        websocket.state.connection_id = connection_id
         self.active_connections[websocket.state.connection_id] = websocket
+        return connection_id
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.pop(websocket.state.connection_id, None)
@@ -48,7 +58,13 @@ def health_check():
 
 @app.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    connection_id = await manager.connect(websocket)
+    await websocket.send_json(
+        {
+            "type": "connected",
+            "connection_id": connection_id,
+        }
+    )
     try:
         while True:
             try:
