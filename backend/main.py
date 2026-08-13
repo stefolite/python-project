@@ -23,17 +23,27 @@ app = FastAPI(lifespan=lifespan)
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict[str, WebSocket] = {}
+        self.active_connections: dict[str, dict[str, WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket) -> str:
         await websocket.accept()
         connection_id = uuid4().hex[:12]
         websocket.state.connection_id = connection_id
-        self.active_connections[websocket.state.connection_id] = websocket
+        room_id = websocket.state.room_id
+        if room_id not in self.active_connections:
+            self.active_connections[room_id] = {}
+        self.active_connections[room_id][connection_id] = websocket
         return connection_id
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.pop(websocket.state.connection_id, None)
+        room_id = websocket.state.room_id
+        connection_id = websocket.state.connection_id
+        room = self.active_connections.get(room_id)
+        if room is None:
+            return
+        room.pop(connection_id, None)
+        if not room:
+            self.active_connections.pop(room_id, None)
 
     async def broadcast(self, sender: WebSocket, message: str):
         event = {
@@ -41,7 +51,9 @@ class ConnectionManager:
             "sender_id": sender.state.connection_id,
             "text": message,
         }
-        for connection in list(self.active_connections.values()):
+        for connection in list(
+            self.active_connections[sender.state.room_id].values()
+        ):
             try:
                 await connection.send_json(event)
             except (WebSocketDisconnect, RuntimeError):
@@ -56,16 +68,17 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.websocket('/ws')
-async def websocket_endpoint(websocket: WebSocket):
+@app.websocket('/ws/{room_id}')
+async def websocket_endpoint(websocket: WebSocket, room_id: str):
+    websocket.state.room_id = room_id
     connection_id = await manager.connect(websocket)
-    await websocket.send_json(
-        {
-            "type": "connected",
-            "connection_id": connection_id,
-        }
-    )
     try:
+        await websocket.send_json(
+            {
+                "type": "connected",
+                "connection_id": connection_id,
+            }
+        )
         while True:
             try:
                 data = await websocket.receive_json()
