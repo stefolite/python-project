@@ -3,7 +3,7 @@ from uuid import uuid4
 from pydantic import ValidationError
 from json import JSONDecodeError
 from contextlib import asynccontextmanager
-from schemas import (
+from .schemas import (
     IncomingMessage,
     MessageEvent,
     ConnectedEvent,
