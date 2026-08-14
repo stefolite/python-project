@@ -32,6 +32,12 @@ class MemberLeftEvent(BaseModel):
     connection_id: str
 
 
+class ErrorEvent(BaseModel):
+    type: Literal["error"] = "error"
+    code: Literal["invalid_message"] = "invalid_message"
+    detail: str
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("App starting...")
@@ -110,7 +116,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 
             except (ValidationError, JSONDecodeError):
                 await websocket.send_json(
-                    {"type": "error", "detail": "Invalid message"}
+                    ErrorEvent(detail="Invalid message").model_dump()
                 )
 
     except WebSocketDisconnect:
