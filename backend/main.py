@@ -11,6 +11,27 @@ class IncomingMessage(BaseModel):
     text: str = Field(min_length=1, max_length=500)
 
 
+class MessageEvent(BaseModel):
+    type: Literal["message"] = "message"
+    sender_id: str
+    text: str
+
+
+class ConnectedEvent(BaseModel):
+    type: Literal["connected"] = "connected"
+    connection_id: str
+
+
+class MemberJoinedEvent(BaseModel):
+    type: Literal["member_joined"] = "member_joined"
+    connection_id: str
+
+
+class MemberLeftEvent(BaseModel):
+    type: Literal["member_left"] = "member_left"
+    connection_id: str
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("App starting...")
@@ -70,26 +91,22 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     connection_id = await manager.connect(websocket)
     try:
         await websocket.send_json(
-            {
-                "type": "connected",
-                "connection_id": connection_id,
-            }
+            ConnectedEvent(connection_id=connection_id).model_dump()
         )
-        event = {
-            "type": "member_joined",
-            "connection_id": connection_id,
-        }
+        event = MemberJoinedEvent(connection_id=connection_id).model_dump()
         await manager.broadcast(websocket.state.room_id, event)
         while True:
             try:
                 data = await websocket.receive_json()
                 message = IncomingMessage.model_validate(data)
-                event = {
-                    "type": "message",
-                    "sender_id": websocket.state.connection_id,
-                    "text": message.text,
-                }
-                await manager.broadcast(websocket.state.room_id, event)
+                event = MessageEvent(
+                    sender_id=connection_id,
+                    text=message.text
+                )
+                await manager.broadcast(
+                    websocket.state.room_id,
+                    event.model_dump()
+                )
 
             except (ValidationError, JSONDecodeError):
                 await websocket.send_json(
@@ -101,8 +118,5 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 
     finally:
         manager.disconnect(websocket)
-        event = {
-            "type": "member_left",
-            "connection_id": connection_id,
-        }
+        event = MemberLeftEvent(connection_id=connection_id).model_dump()
         await manager.broadcast(room_id, event)
