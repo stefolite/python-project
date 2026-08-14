@@ -45,14 +45,9 @@ class ConnectionManager:
         if not room:
             self.active_connections.pop(room_id, None)
 
-    async def broadcast(self, sender: WebSocket, message: str):
-        event = {
-            "type": "message",
-            "sender_id": sender.state.connection_id,
-            "text": message,
-        }
+    async def broadcast(self, room_id: str, event: dict):
         for connection in list(
-            self.active_connections[sender.state.room_id].values()
+            self.active_connections[room_id].values()
         ):
             try:
                 await connection.send_json(event)
@@ -83,7 +78,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             try:
                 data = await websocket.receive_json()
                 message = IncomingMessage.model_validate(data)
-                await manager.broadcast(websocket, message.text)
+                event = {
+                    "type": "message",
+                    "sender_id": websocket.state.connection_id,
+                    "text": message.text,
+                }
+                await manager.broadcast(websocket.state.room_id, event)
 
             except (ValidationError, JSONDecodeError):
                 await websocket.send_json(
