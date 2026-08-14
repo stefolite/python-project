@@ -46,9 +46,10 @@ class ConnectionManager:
             self.active_connections.pop(room_id, None)
 
     async def broadcast(self, room_id: str, event: dict):
-        for connection in list(
-            self.active_connections[room_id].values()
-        ):
+        room = self.active_connections.get(room_id)
+        if room is None:
+            return
+        for connection in list(room.values()):
             try:
                 await connection.send_json(event)
             except (WebSocketDisconnect, RuntimeError):
@@ -74,6 +75,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 "connection_id": connection_id,
             }
         )
+        event = {
+            "type": "member_joined",
+            "connection_id": connection_id,
+        }
+        await manager.broadcast(websocket.state.room_id, event)
         while True:
             try:
                 data = await websocket.receive_json()
@@ -95,3 +101,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 
     finally:
         manager.disconnect(websocket)
+        event = {
+            "type": "member_left",
+            "connection_id": connection_id,
+        }
+        await manager.broadcast(room_id, event)
