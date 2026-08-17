@@ -1,4 +1,9 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    WebSocket,
+    WebSocketDisconnect,
+    Depends
+)
 from pydantic import ValidationError
 from json import JSONDecodeError
 from contextlib import asynccontextmanager
@@ -11,6 +16,9 @@ from backend.schemas import (
     ErrorEvent,
 )
 from backend.connection_manager import ConnectionManager
+from backend.database import get_session
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @asynccontextmanager
@@ -26,12 +34,20 @@ app = FastAPI(lifespan=lifespan)
 manager = ConnectionManager()
 
 
-@app.get('/health')
+@app.get("/health")
 def health_check():
     return {"status": "ok"}
 
 
-@app.websocket('/ws/{room_id}')
+@app.get("/health_db")
+async def health_check_db(db: AsyncSession = Depends(get_session)):
+    result = await db.execute(text("SELECT 1"))
+    value = result.scalar_one()
+    if value == 1:
+        return {"status": "ok"}
+
+
+@app.websocket("/ws/{room_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str):
     websocket.state.room_id = room_id
     connection_id = await manager.connect(websocket)
@@ -60,7 +76,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 )
 
     except WebSocketDisconnect:
-        print('Client disconnected')
+        print("Client disconnected")
 
     finally:
         manager.disconnect(websocket)
