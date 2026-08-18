@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Literal
+from datetime import datetime
 
 
 class IncomingMessage(BaseModel):
@@ -44,3 +45,9 @@ class ConversationCreate(BaseModel):
         if value:
             return value
         raise ValueError("Name cannot be empty")
+
+
+class ConversationResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime

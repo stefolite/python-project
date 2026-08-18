@@ -14,7 +14,8 @@ from backend.schemas import (
     MemberJoinedEvent,
     MemberLeftEvent,
     ErrorEvent,
-    ConversationCreate
+    ConversationCreate,
+    ConversationResponse
 )
 from backend.connection_manager import ConnectionManager
 from backend.database import get_session
@@ -86,17 +87,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         await manager.broadcast(room_id, event)
 
 
-@app.post("/conversations")
+@app.post("/conversations", response_model=ConversationResponse)
 async def conversation(
     payload: ConversationCreate,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ):
     conversation = Conversation(name=payload.name)
     session.add(conversation)
     await session.commit()
     await session.refresh(conversation)
-    return {
-        "id": conversation.id,
-        "name": conversation.name,
-        "created_at": conversation.created_at
-    }
+    return conversation
