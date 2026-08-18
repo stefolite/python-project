@@ -2,7 +2,8 @@ from fastapi import (
     FastAPI,
     WebSocket,
     WebSocketDisconnect,
-    Depends
+    Depends,
+    HTTPException
 )
 from pydantic import ValidationError
 from json import JSONDecodeError
@@ -20,7 +21,7 @@ from backend.schemas import (
 from backend.connection_manager import ConnectionManager
 from backend.database import get_session
 from backend.models import Conversation
-from sqlalchemy import text
+from sqlalchemy import text, select, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -88,7 +89,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 
 
 @app.post("/conversations", response_model=ConversationResponse)
-async def conversation(
+async def conversation_post(
     payload: ConversationCreate,
     session: AsyncSession = Depends(get_session),
 ):
@@ -97,3 +98,24 @@ async def conversation(
     await session.commit()
     await session.refresh(conversation)
     return conversation
+
+
+@app.get("/conversations", response_model=list[ConversationResponse])
+async def conversations_list(session: AsyncSession = Depends(get_session)):
+    stmt = select(Conversation).order_by(asc(Conversation.id))
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+@app.get(
+        "/conversations/{conversation_id}",
+        response_model=ConversationResponse
+)
+async def conversation_get(
+    conversation_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    conversation = await session.get(Conversation, conversation_id)
+    if conversation:
+        return conversation
+    raise HTTPException(status_code=404, detail="No conversation with such id")
