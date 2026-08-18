@@ -51,16 +51,16 @@ async def health_check_db(session: AsyncSession = Depends(get_session)):
         return {"status": "ok"}
 
 
-@app.websocket("/ws/{room_id}")
-async def websocket_endpoint(websocket: WebSocket, room_id: str):
-    websocket.state.room_id = room_id
+@app.websocket("/ws/{conversation_id}")
+async def websocket_endpoint(websocket: WebSocket, conversation_id: int):
+    websocket.state.conversation_id = conversation_id
     connection_id = await manager.connect(websocket)
     try:
         await websocket.send_json(
             ConnectedEvent(connection_id=connection_id).model_dump()
         )
         event = MemberJoinedEvent(connection_id=connection_id).model_dump()
-        await manager.broadcast(websocket.state.room_id, event)
+        await manager.broadcast(websocket.state.conversation_id, event)
         while True:
             try:
                 data = await websocket.receive_json()
@@ -70,7 +70,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                     text=message.text
                 )
                 await manager.broadcast(
-                    websocket.state.room_id,
+                    websocket.state.conversation_id,
                     event.model_dump()
                 )
 
@@ -85,7 +85,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     finally:
         manager.disconnect(websocket)
         event = MemberLeftEvent(connection_id=connection_id).model_dump()
-        await manager.broadcast(room_id, event)
+        await manager.broadcast(conversation_id, event)
 
 
 @app.post("/conversations", response_model=ConversationResponse)

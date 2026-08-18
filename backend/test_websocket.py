@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 def test_websocket_receives_connected_event():
     with TestClient(app) as client:
-        with client.websocket_connect("/ws/general") as ws:
+        with client.websocket_connect("/ws/1") as ws:
             data = ws.receive_json()
             assert data["type"] == "connected"
             assert "connection_id" in data
@@ -12,7 +12,7 @@ def test_websocket_receives_connected_event():
 
 def test_websocket_receives_member_joined_event():
     with TestClient(app) as client:
-        with client.websocket_connect("/ws/general") as ws:
+        with client.websocket_connect("/ws/1") as ws:
             connected = ws.receive_json()
             member_joined = ws.receive_json()
             assert connected["type"] == "connected"
@@ -22,11 +22,11 @@ def test_websocket_receives_member_joined_event():
 
 def test_websocket_receives_others_member_joined_event():
     with TestClient(app) as client:
-        with client.websocket_connect("/ws/general") as ws_1:
+        with client.websocket_connect("/ws/1") as ws_1:
             ws_1.receive_json()
             ws_1.receive_json()
 
-            with client.websocket_connect("/ws/general") as ws_2:
+            with client.websocket_connect("/ws/1") as ws_2:
                 connected = ws_2.receive_json()
                 ws_2.receive_json()
                 member_joined = ws_1.receive_json()
@@ -37,43 +37,43 @@ def test_websocket_receives_others_member_joined_event():
                 )
 
 
-def test_websocket_room_isolation():
+def test_websocket_conversation_id_isolation():
     with TestClient(app) as client:
-        with client.websocket_connect("/ws/general") as ws_1:
+        with client.websocket_connect("/ws/1") as ws_1:
             ws_1.receive_json()
             ws_1.receive_json()
 
-            with client.websocket_connect("/ws/python") as ws_2:
+            with client.websocket_connect("/ws/2") as ws_2:
                 connected_ws_2 = ws_2.receive_json()
                 ws_2.receive_json()
 
                 ws_1.send_json(
                     {
                         "type": "message",
-                        "text": "from_general"
+                        "text": "from_1"
                     }
                 )
 
                 ws_2.send_json(
                     {
                         "type": "message",
-                        "text": "from_python"
+                        "text": "from_2"
                     }
                 )
 
                 event = ws_2.receive_json()
                 assert event["type"] == "message"
-                assert event["text"] == "from_python"
+                assert event["text"] == "from_2"
                 assert event["sender_id"] == connected_ws_2["connection_id"]
 
 
-def test_websocket_broadcasts_message_within_room():
+def test_websocket_broadcasts_message_within_conversation_id():
     with TestClient(app) as client:
-        with client.websocket_connect("/ws/general") as ws_1:
+        with client.websocket_connect("/ws/1") as ws_1:
             connected_ws_1 = ws_1.receive_json()
             ws_1.receive_json()
 
-            with client.websocket_connect("/ws/general") as ws_2:
+            with client.websocket_connect("/ws/1") as ws_2:
                 ws_2.receive_json()
                 ws_2.receive_json()
                 ws_1.receive_json()
@@ -90,7 +90,7 @@ def test_websocket_broadcasts_message_within_room():
 
 def test_websocket_invalid_message_text():
     with TestClient(app) as client:
-        with client.websocket_connect("/ws/general") as ws:
+        with client.websocket_connect("/ws/1") as ws:
             ws.receive_json()
             ws.receive_json()
 
@@ -104,7 +104,7 @@ def test_websocket_invalid_message_text():
 
 def test_websocket_invalid_message_type():
     with TestClient(app) as client:
-        with client.websocket_connect("/ws/general") as ws:
+        with client.websocket_connect("/ws/1") as ws:
             ws.receive_json()
             ws.receive_json()
 
@@ -118,11 +118,11 @@ def test_websocket_invalid_message_type():
 
 def test_websocket_receives_member_left_event():
     with TestClient(app) as client:
-        with client.websocket_connect("/ws/general") as ws_1:
+        with client.websocket_connect("/ws/1") as ws_1:
             ws_1.receive_json()
             ws_1.receive_json()
 
-            with client.websocket_connect("/ws/general") as ws_2:
+            with client.websocket_connect("/ws/1") as ws_2:
                 connected_ws_2 = ws_2.receive_json()
                 ws_2.receive_json()
                 ws_1.receive_json()
