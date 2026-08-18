@@ -54,3 +54,10 @@ class ConversationResponse(BaseModel):
     id: int
     name: str
     created_at: datetime
+
+
+class MessageResponse(BaseModel):
+    id: int
+    conversation_id: int
+    text: str
+    created_at: datetime

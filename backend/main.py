@@ -16,12 +16,13 @@ from backend.schemas import (
     MemberLeftEvent,
     ErrorEvent,
     ConversationCreate,
-    ConversationResponse
+    ConversationResponse,
+    MessageResponse
 )
 from backend.connection_manager import ConnectionManager
 from backend.database import get_session, session_factory
 from backend.models import Conversation, Message
-from sqlalchemy import text, select, asc
+from sqlalchemy import text, select, asc, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -139,3 +140,28 @@ async def conversation_get(
     if conversation:
         return conversation
     raise HTTPException(status_code=404, detail="No conversation with such id")
+
+
+@app.get(
+        "/conversations/{conversation_id}/messages",
+        response_model=list[MessageResponse]
+)
+async def conversation_messages_list(
+    conversation_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    conversation = await session.get(Conversation, conversation_id)
+    if conversation is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No conversation with such id"
+        )
+
+    stmt = (
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(asc(Message.created_at))
+    )
+    messages = await session.execute(stmt)
+    messages = messages.scalars().all()
+    return messages
