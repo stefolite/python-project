@@ -19,7 +19,7 @@ from backend.schemas import (
     ConversationResponse
 )
 from backend.connection_manager import ConnectionManager
-from backend.database import get_session
+from backend.database import get_session, session_factory
 from backend.models import Conversation
 from sqlalchemy import text, select, asc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,6 +53,13 @@ async def health_check_db(session: AsyncSession = Depends(get_session)):
 
 @app.websocket("/ws/{conversation_id}")
 async def websocket_endpoint(websocket: WebSocket, conversation_id: int):
+    async with session_factory() as session:
+        conversation = await session.get(Conversation, conversation_id)
+        if conversation is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No conversation with such id"
+            )
     websocket.state.conversation_id = conversation_id
     connection_id = await manager.connect(websocket)
     try:
