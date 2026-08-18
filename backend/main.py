@@ -14,9 +14,11 @@ from backend.schemas import (
     MemberJoinedEvent,
     MemberLeftEvent,
     ErrorEvent,
+    ConversationCreate
 )
 from backend.connection_manager import ConnectionManager
 from backend.database import get_session
+from backend.models import Conversation
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,8 +42,8 @@ def health_check():
 
 
 @app.get("/health_db")
-async def health_check_db(db: AsyncSession = Depends(get_session)):
-    result = await db.execute(text("SELECT 1"))
+async def health_check_db(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(text("SELECT 1"))
     value = result.scalar_one()
     if value == 1:
         return {"status": "ok"}
@@ -82,3 +84,19 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         manager.disconnect(websocket)
         event = MemberLeftEvent(connection_id=connection_id).model_dump()
         await manager.broadcast(room_id, event)
+
+
+@app.post("/conversations")
+async def conversation(
+    payload: ConversationCreate,
+    session: AsyncSession = Depends(get_session)
+):
+    conversation = Conversation(name=payload.name)
+    session.add(conversation)
+    await session.commit()
+    await session.refresh(conversation)
+    return {
+        "id": conversation.id,
+        "name": conversation.name,
+        "created_at": conversation.created_at
+    }

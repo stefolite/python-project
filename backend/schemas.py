@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Literal
 
 
@@ -32,3 +32,15 @@ class ErrorEvent(BaseModel):
     type: Literal["error"] = "error"
     code: Literal["invalid_message"] = "invalid_message"
     detail: str
+
+
+class ConversationCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def is_not_empty(cls, value):
+        value = value.strip()
+        if value:
+            return value
+        raise ValueError("Name cannot be empty")

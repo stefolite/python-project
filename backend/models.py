@@ -1,6 +1,15 @@
 from backend.database import Base
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, DateTime, ForeignKey, func
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship
+)
+from sqlalchemy import (
+    String,
+    DateTime,
+    ForeignKey,
+    func
+)
 from datetime import datetime
 
 
@@ -12,6 +21,9 @@ class Conversation(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now()
+    )
+    messages: Mapped[list["Message"]] = relationship(
+        back_populates="conversation"
     )
 
 
@@ -27,4 +39,7 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now()
+    )
+    conversation: Mapped["Conversation"] = relationship(
+        back_populates="messages"
     )
