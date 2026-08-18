@@ -20,7 +20,7 @@ from backend.schemas import (
 )
 from backend.connection_manager import ConnectionManager
 from backend.database import get_session, session_factory
-from backend.models import Conversation
+from backend.models import Conversation, Message
 from sqlalchemy import text, select, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,13 +72,26 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: int):
             try:
                 data = await websocket.receive_json()
                 message = IncomingMessage.model_validate(data)
+
+                async with session_factory() as session:
+                    db_message = Message(
+                        conversation_id=conversation_id,
+                        text=message.text
+                    )
+                    session.add(db_message)
+                    await session.commit()
+                    await session.refresh(db_message)
+
                 event = MessageEvent(
+                    message_id=db_message.id,
+                    conversation_id=db_message.conversation_id,
                     sender_id=connection_id,
-                    text=message.text
+                    text=db_message.text,
+                    created_at=db_message.created_at
                 )
                 await manager.broadcast(
                     websocket.state.conversation_id,
-                    event.model_dump()
+                    event.model_dump(mode="json")
                 )
 
             except (ValidationError, JSONDecodeError):

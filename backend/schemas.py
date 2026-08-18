@@ -10,8 +10,11 @@ class IncomingMessage(BaseModel):
 
 class MessageEvent(BaseModel):
     type: Literal["message"] = "message"
+    message_id: int
+    conversation_id: int
     sender_id: str
     text: str
+    created_at: datetime
 
 
 class ConnectedEvent(BaseModel):
