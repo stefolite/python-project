@@ -20,9 +20,12 @@ from backend.schemas import (
     MessageResponse
 )
 from backend.connection_manager import ConnectionManager
-from backend.database import get_session, session_factory
+from backend.database import (
+    get_session,
+    get_session_factory
+)
 from backend.models import Conversation, Message
-from sqlalchemy import text, select, asc, desc
+from sqlalchemy import text, select, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -53,8 +56,12 @@ async def health_check_db(session: AsyncSession = Depends(get_session)):
 
 
 @app.websocket("/ws/{conversation_id}")
-async def websocket_endpoint(websocket: WebSocket, conversation_id: int):
-    async with session_factory() as session:
+async def websocket_endpoint(
+    websocket: WebSocket,
+    conversation_id: int,
+    db_session_factory=Depends(get_session_factory)
+):
+    async with db_session_factory() as session:
         conversation = await session.get(Conversation, conversation_id)
         if conversation is None:
             raise HTTPException(
@@ -74,7 +81,7 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: int):
                 data = await websocket.receive_json()
                 message = IncomingMessage.model_validate(data)
 
-                async with session_factory() as session:
+                async with db_session_factory() as session:
                     db_message = Message(
                         conversation_id=conversation_id,
                         text=message.text
@@ -162,6 +169,6 @@ async def conversation_messages_list(
         .where(Message.conversation_id == conversation_id)
         .order_by(asc(Message.created_at))
     )
-    messages = await session.execute(stmt)
-    messages = messages.scalars().all()
+    result = await session.execute(stmt)
+    messages = result.scalars().all()
     return messages

@@ -130,3 +130,24 @@ def test_websocket_receives_member_left_event():
             event = ws_1.receive_json()
             assert event["type"] == "member_left"
             assert event["connection_id"] == connected_ws_2["connection_id"]
+
+
+def test_websocket_message_is_saved_to_database():
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws/1") as ws:
+            ws.receive_json()
+            ws.receive_json()
+
+            ws.send_json({"type": "message", "text": "persistent_message"})
+            event = ws.receive_json()
+            assert event["type"] == "message"
+            message_id = event["message_id"]
+
+            response = client.get("/conversations/1/messages")
+            assert response.status_code == 200
+            messages = response.json()
+
+            assert len(messages) == 1
+            assert messages[0]["conversation_id"] == 1
+            assert messages[0]["text"] == "persistent_message"
+            assert messages[0]["id"] == message_id
