@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Literal
+from datetime import datetime
 
 
 class IncomingMessage(BaseModel):
@@ -9,8 +10,11 @@ class IncomingMessage(BaseModel):
 
 class MessageEvent(BaseModel):
     type: Literal["message"] = "message"
+    message_id: int
+    conversation_id: int
     sender_id: str
     text: str
+    created_at: datetime
 
 
 class ConnectedEvent(BaseModel):
@@ -32,3 +36,28 @@ class ErrorEvent(BaseModel):
     type: Literal["error"] = "error"
     code: Literal["invalid_message"] = "invalid_message"
     detail: str
+
+
+class ConversationCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def is_not_empty(cls, value):
+        value = value.strip()
+        if value:
+            return value
+        raise ValueError("Name cannot be empty")
+
+
+class ConversationResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+
+
+class MessageResponse(BaseModel):
+    id: int
+    conversation_id: int
+    text: str
+    created_at: datetime
