@@ -27,6 +27,8 @@ from backend.database import (
 from backend.models import Conversation, Message
 from sqlalchemy import text, select, asc
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 
 @asynccontextmanager
@@ -38,8 +40,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.mount("/static", StaticFiles(directory="frontend/static"), 'static')
+
 
 manager = ConnectionManager()
+
+
+@app.get("/")
+def index():
+    return FileResponse(path='frontend/index.html')
 
 
 @app.get("/health")
