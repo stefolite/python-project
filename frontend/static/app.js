@@ -1,5 +1,3 @@
-console.log("Chat frontend loaded");
-
 const conversationInput = document.getElementById("conversation_id");
 const connectButton = document.getElementById("connect_button");
 const messages = document.getElementById("messages");
@@ -7,12 +5,17 @@ const messageInput = document.getElementById("message_input");
 const sendButton = document.getElementById("send_button");
 const connectionStatus = document.getElementById("connection_status");
 
+const setMessagingEnabled = (enabled) => {
+    sendButton.disabled = !enabled;
+    messageInput.disabled = !enabled;
+};
+
 let websocket = null;
 let historyLoading = false;
 let pendingMessages = [];
 let connectionVersion = 0;
-let displayedMessageIds = new Set();
-setMessagingEnabled(false)
+const displayedMessageIds = new Set();
+setMessagingEnabled(false);
 
 const handleConnect = () => {
     const conversationId = Number(conversationInput.value);
@@ -25,7 +28,7 @@ const handleConnect = () => {
     }
     
     connectionStatus.textContent = "Connecting...";
-    setMessagingEnabled(false)
+    setMessagingEnabled(false);
     
     if (
         websocket !== null && 
@@ -42,7 +45,6 @@ const handleConnect = () => {
     websocket = new WebSocket(
         `ws://${window.location.host}/ws/${conversationId}`
     );
-    console.log(websocket);
     
     websocket.addEventListener("open", (event) => handleWebSocketOpen(event, conversationId, version));
     websocket.addEventListener("message", handleWebSocketMessage);
@@ -54,17 +56,16 @@ const handleWebSocketOpen = (event, conversationId, version) => {
     if (event.target !== websocket) {
         return;
     }
-    console.log("websocket open");
     messages.textContent = "";
     displayedMessageIds.clear();
     loadMessages(conversationId, version);
-    setMessagingEnabled(true)
+    setMessagingEnabled(true);
     connectionStatus.textContent = "Connected";
 };
 
 const handleWebSocketClose = (event) => {
     if (event.target === websocket) {
-        setMessagingEnabled(false)
+        setMessagingEnabled(false);
         addMessage("Disconnected");
         websocket = null;
         connectionStatus.textContent = "Disconnected";
@@ -184,11 +185,6 @@ const handleWebSocketError = (event) => {
     }
     connectionStatus.textContent = "Connection error";
     addMessage("WebSocket error");
-};
-
-const setMessagingEnabled = (enabled) => {
-    sendButton.disabled = !enabled;
-    messageInput.disabled = !enabled;
 };
 
 connectButton.addEventListener("click", handleConnect);
