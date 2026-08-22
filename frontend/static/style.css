@@ -125,6 +125,7 @@ button {
 button:disabled {
     cursor: not-allowed;
     opacity: 0.6;
+    background: rgb(214, 214, 214);
 }
 
 button:not(:disabled):hover {
@@ -133,6 +134,7 @@ button:not(:disabled):hover {
 
 input:disabled {
     opacity: 0.6;
+    background: rgb(214, 214, 214);
 }
 
 .status-connecting {
