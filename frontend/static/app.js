@@ -23,11 +23,11 @@ const handleConnect = () => {
         !Number.isInteger(conversationId) || 
         conversationId <= 0
     ) {
-        addMessage("Invalid conversation ID");
+        addMessage("Invalid conversation ID", "error-message");
         return;
     }
     
-    connectionStatus.textContent = "Connecting...";
+    setConnectionStatus("Connecting...", "status-connecting");
     setMessagingEnabled(false);
     
     if (
@@ -60,15 +60,16 @@ const handleWebSocketOpen = (event, conversationId, version) => {
     displayedMessageIds.clear();
     loadMessages(conversationId, version);
     setMessagingEnabled(true);
-    connectionStatus.textContent = "Connected";
+    messageInput.focus()
+    setConnectionStatus("Connected", "status-connected");
 };
 
 const handleWebSocketClose = (event) => {
     if (event.target === websocket) {
         setMessagingEnabled(false);
-        addMessage("Disconnected");
+        addMessage("Disconnected", "system-message");
         websocket = null;
-        connectionStatus.textContent = "Disconnected";
+        setConnectionStatus("Disconnected", "status-error");
     }
 };
 
@@ -82,14 +83,14 @@ const handleWebSocketMessage = (event) => {
     try {
         data = JSON.parse(event.data);
     } catch (error) {
-        addMessage("Invalid server message");
+        addMessage("Invalid server message", "error-message");
         return;
     }
     
     if (data.type === "connected") {
-        addMessage(`Connected: ${data.connection_id}`);
+        addMessage(`Connected: ${data.connection_id}`, "system-message");
     } else if (data.type === "member_joined") {
-        addMessage(`Member joined: ${data.connection_id}`);
+        addMessage(`Member joined: ${data.connection_id}`, "system-message");
     } else if (data.type === "message") {
         if (historyLoading) {
             pendingMessages.push(data);
@@ -101,17 +102,21 @@ const handleWebSocketMessage = (event) => {
         displayedMessageIds.add(data.message_id);
         addMessage(`${data.sender_id}: ${data.text}`);
     } else if (data.type === "member_left") {
-        addMessage(`Member left: ${data.connection_id}`);
+        addMessage(`Member left: ${data.connection_id}`, "system-message");
     } else if (data.type === "error") {
-        addMessage(`Error: ${data.detail}`);
+        addMessage(`Error: ${data.detail}`, "error-message");
     }
     
 };
 
-const addMessage = (text) => {
+const addMessage = (text, className) => {
     const element = document.createElement("div");
+    if (className) {
+        element.classList.add(className);
+    }
     element.textContent = text;
     messages.appendChild(element);
+    messages.scrollTop = messages.scrollHeight;
 };
 
 const handleSend = () => {
@@ -148,7 +153,7 @@ const loadMessages = async (conversationId, version) => {
             return;
         }
         if (!response.ok) {
-            addMessage("Failed to load messages");
+            addMessage("Failed to load messages", "error-message");
             return;
         }
         const data = await response.json();
@@ -162,7 +167,7 @@ const loadMessages = async (conversationId, version) => {
         }
     } catch (error) {
         if (version === connectionVersion) {
-            addMessage("Network error");
+            addMessage("Network error", "error-message");
         }
     } finally {
         if (version === connectionVersion) {
@@ -183,8 +188,18 @@ const handleWebSocketError = (event) => {
     if (event.target !== websocket) {
         return;
     }
-    connectionStatus.textContent = "Connection error";
-    addMessage("WebSocket error");
+    setConnectionStatus("Connection error", "status-error");
+    addMessage("WebSocket error", "error-message");
+};
+
+const setConnectionStatus = (text, className) => {
+    connectionStatus.textContent = text;
+    connectionStatus.classList.remove(
+    "status-connecting",
+    "status-connected",
+    "status-error"
+    );
+    connectionStatus.classList.add(className);
 };
 
 connectButton.addEventListener("click", handleConnect);
