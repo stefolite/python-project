@@ -1,32 +1,84 @@
 body {
     font-family: Arial, sans-serif;
-    justify-self: center;
-    align-items: center;
+    margin: 0;
+}
+
+#page_layout {
+    display: grid;
+
+    grid-template-columns: 200px 500px 200px;
+    grid-template-rows: auto auto 400px auto;
+
+    column-gap: 50px;
+    row-gap: 10px;
+
+    justify-content: center;
+    align-content: center;
+
+    min-height: 100vh;
 }
 
 h1 {
+    grid-column: 2;
+    grid-row: 1;
+
+    margin: 0;
+
     font-size: 55px;
     color: palevioletred;
 }
 
-#messages {
-    border: 1px solid;
-    height: 400px;
+#connection_controls {
+    grid-column: 2;
+    grid-row: 2;
+
+    display: flex;
     width: 500px;
-    overflow-y: auto;
+    gap: 6px;
+    align-items: center;
+}
+
+#side_image {
+    grid-column: 1;
+    grid-row: 3;
+
+    justify-self: end;
+    align-self: center;
+
+    width: 200px;
+    max-height: 400px;
+    height: auto;
+
+    object-fit: contain;
+}
+
+#messages {
+    grid-column: 2;
+    grid-row: 3;
+
+    width: 500px;
+    height: 400px;
+
+    border: 1px solid;
+    border-radius: 6px;
+
     padding: 10px;
     box-sizing: border-box;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    overflow-wrap: anywhere;
+
+    overflow-y: auto;
 }
 
 #messages div {
     margin-bottom: 5px;
     padding: 4px 6px;
+
+    overflow-wrap: anywhere;
 }
 
 #message_controls {
+    grid-column: 2;
+    grid-row: 4;
+
     display: flex;
     width: 500px;
     gap: 6px;
@@ -36,20 +88,13 @@ h1 {
     flex: 1;
 }
 
-#connection_controls {
-    display: flex;
-    width: 500px;
-    gap: 6px;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
 #conversation_id {
     flex: 1;
 }
 
 #connection_status {
-    min-width: 100px;
+    min-width: 120px;
+
     font-size: 16px;
     font-weight: 600;
 }
@@ -57,17 +102,24 @@ h1 {
 input {
     height: 36px;
     padding: 0 8px;
+
     box-sizing: border-box;
+
     font: inherit;
+    border-radius: 6px;
 }
 
 button {
     height: 36px;
     padding: 0 12px;
-    cursor: pointer;
+
+    font: inherit;
+
     background: white;
     border: 1px solid;
-    font: inherit;
+    border-radius: 6px;
+
+    cursor: pointer;
 }
 
 button:disabled {
@@ -77,6 +129,10 @@ button:disabled {
 
 button:not(:disabled):hover {
     background: #f0f0f0;
+}
+
+input:disabled {
+    opacity: 0.6;
 }
 
 .status-connecting {

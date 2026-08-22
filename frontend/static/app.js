@@ -60,7 +60,7 @@ const handleWebSocketOpen = (event, conversationId, version) => {
     displayedMessageIds.clear();
     loadMessages(conversationId, version);
     setMessagingEnabled(true);
-    messageInput.focus()
+    messageInput.focus();
     setConnectionStatus("Connected", "status-connected");
 };
 
@@ -195,9 +195,9 @@ const handleWebSocketError = (event) => {
 const setConnectionStatus = (text, className) => {
     connectionStatus.textContent = text;
     connectionStatus.classList.remove(
-    "status-connecting",
-    "status-connected",
-    "status-error"
+        "status-connecting",
+        "status-connected",
+        "status-error"
     );
     connectionStatus.classList.add(className);
 };
