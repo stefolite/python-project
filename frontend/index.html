@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <title>leChat</title>
+
+        <link rel="icon" href="/static/images/favicon.png">
+        <link rel="stylesheet" href="/static/style.css">
+    </head>
+
+    <body>
+        <main id="page_layout">
+            <h1>leChat</h1>
+
+            <div id="connection_controls">
+                <input
+                    id="conversation_id"
+                    type="number"
+                    placeholder="Conversation ID"
+                >
+
+                <button id="connect_button">
+                    Connect
+                </button>
+
+                <span
+                    id="connection_status"
+                    class="status-error"
+                >
+                    Disconnected
+                </span>
+            </div>
+
+            <img
+                id="side_image"
+                src="/static/images/side_image.png"
+                alt="Side image"
+            >
+
+            <div id="messages"></div>
+
+            <div id="message_controls">
+                <input
+                    id="message_input"
+                    type="text"
+                    placeholder="Type message"
+                >
+
+                <button id="send_button">
+                    Send
+                </button>
+            </div>
+        </main>
+
+        <script src="/static/app.js"></script>
+    </body>
+</html>

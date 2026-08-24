@@ -27,6 +27,8 @@ from backend.database import (
 from backend.models import Conversation, Message
 from sqlalchemy import text, select, asc
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 
 @asynccontextmanager
@@ -38,8 +40,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.mount(
+    "/static",
+    StaticFiles(directory="frontend/static"),
+    name='static'
+)
 
 manager = ConnectionManager()
+
+
+@app.get("/")
+def index():
+    return FileResponse(path='frontend/index.html')
 
 
 @app.get("/health")
@@ -68,8 +80,10 @@ async def websocket_endpoint(
                 status_code=404,
                 detail="No conversation with such id"
             )
+
     websocket.state.conversation_id = conversation_id
     connection_id = await manager.connect(websocket)
+
     try:
         await websocket.send_json(
             ConnectedEvent(connection_id=connection_id).model_dump()
